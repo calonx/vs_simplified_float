@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+<!--
+
+=== Setting up ===
+
+  Insert this definition somewhere, anywhere in the module(s) of interest:
+
+    struct NatvisFloat
+    {
+      NatvisFloat(float f_) : f(f_) { }
+      NOINLINE static NatvisFloat Cast(float f_);
+      float f;
+    };
+
+    NatvisFloat NatvisFloat::Cast(float f_) { return NatvisFloat(f_); }
+
+  Omitting this definition makes it very likely the NatvisFloat type will not
+  exist in your symbol-database, so the visualizer will do nothing.
+
+  NOTE: You'll need to #define NOINLINE for whichever compiler you're using.
+        Disabling inlining for this otherwise-trivial function grants two things:
+
+    1) The NatvisFloat type won't be discarded as trivial (AFAIK, anyway)
+    2) You can execute NatvisFloat::Cast(1.234f) in a Watch window
+        (...maybe only useful for testing this .natvis file)
+
+  See the "Vec3" definition at the bottom for an example of how to leverage this
+  for your own types.
+
+-->
+
+
+  <!--===========================================================================================-->
+  <!-- Helper-type for shortening displayed fractional values -->
+  <!--  Shows ⇂ next to values rounded TOWARD    zero -->
+  <!--  Shows ↾ next to values rounded AWAY FROM zero -->
+  <Type Name="NatvisFloat">
+    <!-- Values outside of contiguous integer-range -->
+    <DisplayString Condition="f &gt;= 1 &lt;&lt; 24 || -f &gt;= 1 &lt;&lt; 24">
+      {f}
+    </DisplayString>
+
+    <!-- Integer values -->
+    <DisplayString Condition="f == (int)f">
+      {(int)f,d}
+    </DisplayString>
+
+    <!-- Negative values in need of rounding away from zero -->
+    <DisplayString Condition="f &lt; 0 &amp;&amp; ((double)f * 100 - (int)((double)f * 100) + 0.5 &gt; 0)">
+      -{(int)(-f + 0.0050000000000001),d}.{(int)(((double)-f + 0.0050000000000001) * 10) % 10,d}{(int)(((double)-f + 0.0050000000000001) * 100) % 10,d}↾
+    </DisplayString>
+
+    <!-- Negative values in need of rounding toward zero -->
+    <DisplayString Condition="f &lt; 0 &amp;&amp; ((double)f * 100 - (int)((double)f * 100) + 0.5 &lt; 0)">
+      -{(int)(-f + 0.0050000000000001),d}.{(int)(((double)-f + 0.0050000000000001) * 10) % 10,d}{(int)(((double)-f + 0.0050000000000001) * 100) % 10,d}⇂
+    </DisplayString>
+
+    <!-- Positive values in need of rounding away from zero -->
+    <DisplayString Condition="f &gt; 0 &amp;&amp; ((double)f * 100 - (int)((double)f * 100) - 0.5 &gt; 0)">
+      {(int)(f + 0.0050000000000001),d}.{(int)(((double)f + 0.0050000000000001) * 10) % 10,d}{(int)(((double)f + 0.0050000000000001) * 100) % 10,d}↾
+    </DisplayString>
+
+    <!-- Positive values in need of rounding toward zero -->
+    <DisplayString Condition="f &gt; 0 &amp;&amp; ((double)f * 100 - (int)((double)f * 100) - 0.5 &lt; 0)">
+      {(int)(f + 0.0050000000000001),d}.{(int)(((double)f + 0.0050000000000001) * 10) % 10,d}{(int)(((double)f + 0.0050000000000001) * 100) % 10,d}⇂
+    </DisplayString>
+
+    <!-- Negative values -->
+    <DisplayString Condition="f &lt; 0">
+      -{(int)-f,d}.{(int)(-f * 10) % 10,d}{(int)(-f * 100) % 10,d}
+    </DisplayString>
+
+    <!-- Positive values -->
+    <DisplayString Condition="f &gt; 0">
+      {(int)f,d}.{(int)(f * 10) % 10,d}{(int)(f * 100) % 10,d}
+    </DisplayString>
+
+    <!-- Other values (e.g. NAN) -->
+    <DisplayString>
+      {f}
+    </DisplayString>
+  </Type>
+
+
+  <!--===========================================================================================-->
+  <Type Name="Vec3">
+    <DisplayString>
+      ({*(NatvisFloat *)&amp;x}, {*(NatvisFloat *)&amp;y}, {*(NatvisFloat *)&amp;z})
+    </DisplayString>
+  </Type>
+
+</AutoVisualizer>
